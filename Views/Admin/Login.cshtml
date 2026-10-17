@@ -15,10 +15,7 @@
                     <p class="text-muted">Sign in with administrator credentials.</p>
                 </div>
 
-                <div class="alert alert-warning py-2 small mb-4" role="alert">
-                    <i class="bi bi-key-fill me-1"></i> <strong>Default Admin Access:</strong><br />
-                    Email: <code>admin@gmail.com</code> | Password: <code>admin</code>
-                </div>
+                <!-- Default admin credentials removed from UI for security -->
 
                 <form asp-action="Login" method="post">
                     @Html.AntiForgeryToken()
@@ -37,7 +34,7 @@
                         <label asp-for="Password" class="form-label fw-semibold"></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
-                            <input asp-for="Password" class="form-control" value="admin" required />
+                            <input asp-for="Password" class="form-control" required />
                         </div>
                         <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>

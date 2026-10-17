@@ -1,6 +1,22 @@
 @model List<TourManagement_MVC.Models.Tour>
 @{
     ViewData["Title"] = "Explore Tour Packages";
+
+    // Prepare pagination helpers here to avoid nested Razor code blocks later
+    int page = 1;
+    int pageSize = 12;
+    int totalPages = 1;
+    if (ViewBag.Page is int vbPage) page = vbPage; else if (int.TryParse(Context.Request.Query["page"].ToString(), out var pv)) page = pv;
+    if (ViewBag.PageSize is int vbPageSize) pageSize = vbPageSize; else if (int.TryParse(Context.Request.Query["pageSize"].ToString(), out var psv)) pageSize = psv;
+    if (ViewBag.TotalPages is int tp) totalPages = tp; else if (ViewBag.TotalCount is long tc) totalPages = (int)Math.Ceiling(tc / (double)pageSize);
+
+    var queryParams = Context.Request.Query.Where(k => k.Key != "page").SelectMany(k => k.Value, (k, v) => new { Key = k.Key, Value = v }).ToList();
+    string BuildPageLink(int p)
+    {
+        var pairs = queryParams.Select(q => $"{System.Net.WebUtility.UrlEncode(q.Key)}={System.Net.WebUtility.UrlEncode(q.Value)}").ToList();
+        pairs.Add($"page={p}");
+        return "/Tour/Index?" + string.Join("&", pairs);
+    }
 }
 
 <div class="container py-4">
@@ -14,26 +30,90 @@
         </span>
     </div>
 
+<script>
+    (function(){
+        const searchInput = document.getElementById('searchInput');
+        const placeInput = document.getElementById('placeInput');
+        const searchList = document.getElementById('searchSuggestions');
+        const placeList = document.getElementById('placeSuggestions');
+
+        let lastQuery = '';
+        function fetchSuggestions(q, targetList){
+            if (!q || q.length < 1) return;
+            if (q === lastQuery) return;
+            lastQuery = q;
+            fetch('/Tour/Suggestions?q=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(items => {
+                    targetList.innerHTML = '';
+                    items.forEach(i => {
+                        const opt = document.createElement('option');
+                        opt.value = i;
+                        targetList.appendChild(opt);
+                    });
+                })
+                .catch(() => {});
+        }
+
+        searchInput?.addEventListener('input', e => fetchSuggestions(e.target.value, searchList));
+        placeInput?.addEventListener('input', e => fetchSuggestions(e.target.value, placeList));
+    })();
+</script>
+
     <!-- Filter Card -->
     <div class="card border-0 shadow-sm p-3 mb-4 rounded-3 bg-white">
         <form asp-controller="Tour" asp-action="Index" method="get">
             <div class="row g-2 align-items-center">
-                <div class="col-md-5">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
-                        <input type="text" name="search" value="@ViewBag.SearchTerm" class="form-control" placeholder="Search by name, place, or location...">
-                    </div>
-                </div>
                 <div class="col-md-4">
                     <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                        <input id="searchInput" type="text" name="search" value="@ViewBag.SearchTerm" class="form-control" placeholder="Search by name, place, or location..." list="searchSuggestions">
+                        <datalist id="searchSuggestions"></datalist>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <label class="input-group-text bg-light"><i class="bi bi-list"></i></label>
+                        <select name="type" class="form-select">
+                            @{
+                                var selType = Context.Request.Query["type"].ToString() ?? "Stay";
+                            }
+                            @if (selType == "Stay") { <option value="Stay" selected>Stay</option> } else { <option value="Stay">Stay</option> }
+                            @if (selType == "Flight") { <option value="Flight" selected>Flight</option> } else { <option value="Flight">Flight</option> }
+                            @if (selType == "FlightHotel") { <option value="FlightHotel" selected>Flight + Hotel</option> } else { <option value="FlightHotel">Flight + Hotel</option> }
+                            @if (selType == "CarRental") { <option value="CarRental" selected>Car rental</option> } else { <option value="CarRental">Car rental</option> }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="input-group">
                         <span class="input-group-text bg-light"><i class="bi bi-geo-alt"></i></span>
-                        <input type="text" name="place" value="@ViewBag.SelectedPlace" class="form-control" placeholder="Filter by destination...">
+                        <input id="placeInput" type="text" name="place" value="@ViewBag.SelectedPlace" class="form-control" placeholder="Filter by destination..." list="placeSuggestions">
+                        <datalist id="placeSuggestions"></datalist>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="input-group">
+                        <label class="input-group-text bg-light"><i class="bi bi-sort-down"></i></label>
+                        <select name="sort" class="form-select">
+                            @{
+                                var sortVal = ViewBag.Sort as string ?? string.Empty;
+                            }
+                            @if (sortVal == "") { <option value="" selected>Relevance</option> } else { <option value="">Relevance</option> }
+                            @if (sortVal == "price_asc") { <option value="price_asc" selected>Price: Low to High</option> } else { <option value="price_asc">Price: Low to High</option> }
+                            @if (sortVal == "price_desc") { <option value="price_desc" selected>Price: High to Low</option> } else { <option value="price_desc">Price: High to Low</option> }
+                        </select>
                     </div>
                 </div>
                 <div class="col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-primary w-100 fw-semibold">
                         <i class="bi bi-funnel me-1"></i> Filter
                     </button>
+                    <div class="ms-2">
+                        <select name="adults" class="form-select">
+                            @for (int i = 1; i <= 6; i++) { <option value="@i">@i</option> }
+                        </select>
+                    </div>
                     @if (!string.IsNullOrEmpty(ViewBag.SearchTerm) || !string.IsNullOrEmpty(ViewBag.SelectedPlace))
                     {
                         <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
@@ -42,6 +122,36 @@
             </div>
         </form>
     </div>
+
+    @* Deals panel for non-stay searches *@
+    @if (ViewBag.Deals != null)
+    {
+        var deals = ViewBag.Deals as List<TourManagement_MVC.Models.Tour>;
+        if (deals != null && deals.Count > 0)
+        {
+            <div class="mb-4">
+                <h4 class="mb-3">Special deals</h4>
+                <div class="row g-3">
+                    @foreach (var d in deals)
+                    {
+                        <div class="col-md-3">
+                            <div class="card h-100 shadow-sm">
+                                <img src="~/images/tours/@d.Pic" class="card-img-top" style="height:120px;object-fit:cover;" />
+                                <div class="card-body p-2">
+                                    <h6 class="fw-bold mb-1">@d.TourName</h6>
+                                    <p class="small text-muted mb-1">@d.TourInfo</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-primary fw-semibold">₹@d.Price.ToString("N0")</span>
+                                        <a asp-action="Details" asp-route-id="@d.TourId" class="btn btn-sm btn-outline-primary">View</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
 
     <!-- Tour Cards Grid -->
     @if (Model.Count == 0)
@@ -95,5 +205,26 @@
                 </div>
             }
         </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(page <= 1 ? "disabled" : "")">
+                        <a class="page-link" href="@(page <= 1 ? "#" : BuildPageLink(page-1))">Previous</a>
+                    </li>
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        <li class="page-item @(p == page ? "active" : "")">
+                            <a class="page-link" href="@BuildPageLink(p)">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                        <a class="page-link" href="@(page >= totalPages ? "#" : BuildPageLink(page+1))">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        }
     }
 </div>

@@ -39,17 +39,23 @@ namespace TourManagement_MVC.Controllers
             return View(new ContactViewModel());
         }
 
+        private readonly IEmailService _emailService;
+
         // POST: /Home/Contact
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Contact(ContactViewModel model)
+        public async System.Threading.Tasks.Task<IActionResult> Contact(ContactViewModel model, [FromServices] IEmailService emailService)
         {
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            // In a production app, this would send an email or save to DB.
+            // Send contact message to site admin
+            var adminEmail = HttpContext.RequestServices.GetService<Microsoft.Extensions.Configuration.IConfiguration>()?["Email:Admin"] ?? "admin@example.com";
+            await emailService.SendContactMessageAsync(adminEmail, $"Website Contact: {model.Subject}",
+                $"<p>From: {model.FullName} &lt;{model.Email}&gt;</p><p>Message:</p><div>{System.Net.WebUtility.HtmlEncode(model.Message)}</div>");
+
             TempData["SuccessMessage"] = $"Thank you, {model.FullName}! Your message regarding '{model.Subject}' has been received. Our travel specialist will contact you shortly at {model.Email}.";
             return RedirectToAction("Contact");
         }

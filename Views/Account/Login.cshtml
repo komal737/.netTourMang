@@ -13,10 +13,7 @@
                     <p class="text-muted">Access your bookings and travel dashboard.</p>
                 </div>
 
-                <div class="alert alert-info py-2 small mb-4" role="alert">
-                    <i class="bi bi-info-circle-fill me-1"></i> <strong>Demo Credentials:</strong><br />
-                    Email: <code>user@gmail.com</code> | Password: <code>user123</code>
-                </div>
+                <!-- Demo credentials removed for security -->
 
                 <form asp-action="Login" method="post">
                     @Html.AntiForgeryToken()
@@ -27,7 +24,7 @@
                         <label asp-for="Email" class="form-label fw-semibold"></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
-                            <input asp-for="Email" class="form-control" placeholder="name@example.com" value="user@gmail.com" required />
+                            <input asp-for="Email" class="form-control" placeholder="name@example.com" required />
                         </div>
                         <span asp-validation-for="Email" class="text-danger small"></span>
                     </div>
@@ -36,7 +33,7 @@
                         <label asp-for="Password" class="form-label fw-semibold"></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
-                            <input asp-for="Password" class="form-control" placeholder="••••••••" value="user123" required />
+                            <input asp-for="Password" class="form-control" placeholder="••••••••" required />
                         </div>
                         <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>

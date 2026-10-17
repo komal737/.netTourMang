@@ -1,0 +1,39 @@
+@{
+    ViewData["Title"] = "Manage Counters";
+}
+
+<h2>Database Counters</h2>
+
+@if (ViewBag.Counters == null || ((IDictionary<string,int>)ViewBag.Counters).Count == 0)
+{
+    <p>No counters found.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr><th>Counter</th><th>Value</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var kv in (IDictionary<string,int>)ViewBag.Counters)
+            {
+                <tr>
+                    <td>@kv.Key</td>
+                    <td>@kv.Value</td>
+                    <td>
+                        <form asp-action="ResetCounter" method="post" class="d-inline-block">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="name" value="@kv.Key" />
+                            <div class="input-group input-group-sm" style="max-width:220px;">
+                                <input type="number" name="value" value="@kv.Value" class="form-control form-control-sm" />
+                                <button class="btn btn-outline-primary btn-sm" type="submit">Reset</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<p><a class="btn btn-secondary" asp-action="Dashboard">Back to Dashboard</a></p>

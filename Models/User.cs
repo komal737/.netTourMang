@@ -36,6 +36,9 @@ namespace TourManagement_MVC.Models
         [BsonElement("password")]
         public string Password { get; set; } = string.Empty;
 
+        [BsonElement("role")]
+        public string Role { get; set; } = "User";
+
         [Required(ErrorMessage = "Mobile number is required")]
         [Display(Name = "Mobile Number")]
         [Phone(ErrorMessage = "Invalid mobile number")]

@@ -1,0 +1,41 @@
+@{
+    ViewData["Title"] = "Repair ID Collisions";
+}
+
+<h2>Repair ID Collisions</h2>
+
+@if (ViewBag.Messages == null || ((IEnumerable<string>)ViewBag.Messages).Count() == 0)
+{
+    <p>No collisions detected.</p>
+}
+else
+{
+    <h5>Detected issues (dry-run)</h5>
+    <ul>
+        @foreach (var m in (IEnumerable<string>)ViewBag.Messages)
+        {
+            <li>@m</li>
+        }
+    </ul>
+
+    @if ((bool)(ViewBag.CanRepair ?? false))
+    {
+        <form asp-action="RepairIdsPost" method="post">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-danger" type="submit">Perform Repair</button>
+        </form>
+    }
+}
+
+<p><a class="btn btn-secondary" asp-action="Dashboard">Back to Dashboard</a></p>
+
+@if (ViewBag.Messages != null && ((IEnumerable<string>)ViewBag.Messages).Count() > 0 && TempData["SuccessMessage"] != null)
+{
+    <h5 class="mt-4">Repair results</h5>
+    <ul>
+        @foreach (var m in (IEnumerable<string>)ViewBag.Messages)
+        {
+            <li>@m</li>
+        }
+    </ul>
+}

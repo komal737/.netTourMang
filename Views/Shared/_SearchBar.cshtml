@@ -1,0 +1,94 @@
+@* Simple Booking.com-style search bar partial. Submits GET to /Tour/Index *@
+@{
+    var place = Context.Request.Query["place"].ToString() ?? string.Empty;
+    var start = Context.Request.Query["start"].ToString() ?? string.Empty;
+    var end = Context.Request.Query["end"].ToString() ?? string.Empty;
+    var adults = Context.Request.Query["adults"].ToString() ?? "2";
+}
+
+<section class="bg-image" style="background-image: url('/images/hero.jpg'); background-size: cover; background-position: center;">
+    <div class="container py-5">
+        <div class="row align-items-end">
+            <div class="col-12 col-lg-8 text-white mb-3">
+                <h1 class="display-5 fw-bold">Find great tours for your next trip</h1>
+                <p class="lead">Search destinations, pick dates and travellers — explore amazing deals.</p>
+            </div>
+            <div class="col-12">
+                <div class="card shadow-sm p-3">
+                    <form asp-controller="Tour" asp-action="Index" method="get" class="row g-2 align-items-center">
+                        <div class="col-md-5">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-geo-alt"></i></span>
+                                <input id="placeBar" name="place" value="@place" class="form-control" placeholder="Enter destination" autocomplete="off" list="placeSuggestions">
+                                <datalist id="placeSuggestions"></datalist>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
+                                <input type="date" name="start" value="@start" class="form-control">
+                                <input type="date" name="end" value="@end" class="form-control ms-2">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-people"></i></span>
+                                <select name="adults" class="form-select">
+                                    @for (int i = 1; i <= 6; i++)
+                                    {
+                                        <option value="@i" selected="@(adults == i.ToString())">@i</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Search</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- flatpickr for nicer date range selection -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    (function(){
+        const placeInput = document.getElementById('placeBar');
+        const placeList = document.getElementById('placeSuggestions');
+        let timer;
+        placeInput?.addEventListener('input', e => {
+            clearTimeout(timer);
+            const q = e.target.value;
+            if (!q || q.length < 1) return;
+            timer = setTimeout(() => {
+                fetch('/Tour/Suggestions?q=' + encodeURIComponent(q))
+                    .then(r => r.json())
+                    .then(items => {
+                        placeList.innerHTML = '';
+                        items.forEach(i => {
+                            const opt = document.createElement('option'); opt.value = i; placeList.appendChild(opt);
+                        });
+                    }).catch(()=>{});
+            }, 200);
+        });
+
+        // initialize flatpickr on date inputs (range)
+        try {
+            flatpickr("input[name=start]", {
+                altInput: true,
+                altFormat: "M j, Y",
+                dateFormat: "Y-m-d",
+            });
+            flatpickr("input[name=end]", {
+                altInput: true,
+                altFormat: "M j, Y",
+                dateFormat: "Y-m-d",
+            });
+        } catch (e) {
+            // ignore if flatpickr not available
+        }
+    })();
+</script>

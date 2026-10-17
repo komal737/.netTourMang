@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 using System;
 using TourManagement_MVC.Models;
 using TourManagement_MVC.Models.ViewModels;
@@ -32,18 +36,23 @@ namespace TourManagement_MVC.Controllers
             {
                 return View(model);
             }
-
             var user = _tourService.AuthenticateUser(model.Email, model.Password);
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty, "Invalid email or password. (Demo: user@gmail.com / user123)");
+                ModelState.AddModelError(string.Empty, "Invalid email or password.");
                 return View(model);
             }
 
-            // Store in Session
-            HttpContext.Session.SetString("UserEmail", user.Email);
-            HttpContext.Session.SetString("UserName", user.FirstName);
-            HttpContext.Session.SetString("UserFullName", user.FullName);
+            // Create claims and sign-in via cookie authentication
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.FullName ?? user.Email),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+            HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
             TempData["SuccessMessage"] = $"Welcome back, {user.FirstName}!";
 
@@ -78,19 +87,26 @@ namespace TourManagement_MVC.Controllers
                 return View(user);
             }
 
-            // Auto-login upon registration
-            HttpContext.Session.SetString("UserEmail", user.Email);
-            HttpContext.Session.SetString("UserName", user.FirstName);
-            HttpContext.Session.SetString("UserFullName", user.FullName);
+            // Sign-in the newly registered user
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.FullName ?? user.Email),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+            HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
             TempData["SuccessMessage"] = "Registration successful! Welcome to Tour Management.";
             return RedirectToAction("Index", "Tour");
         }
 
         // GET: /Account/Profile
+        [Authorize]
         public IActionResult Profile()
         {
-            string? email = HttpContext.Session.GetString("UserEmail");
+            string? email = User?.Claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
             if (string.IsNullOrEmpty(email))
             {
                 return RedirectToAction("Login");
@@ -109,9 +125,7 @@ namespace TourManagement_MVC.Controllers
         // GET: /Account/Logout
         public IActionResult Logout()
         {
-            HttpContext.Session.Remove("UserEmail");
-            HttpContext.Session.Remove("UserName");
-            HttpContext.Session.Remove("UserFullName");
+            HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             TempData["SuccessMessage"] = "You have been logged out successfully.";
             return RedirectToAction("Index", "Home");
         }
